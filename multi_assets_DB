@@ -1,4 +1,3 @@
-
 from pandas.io.parsers import read_csv
 import requests
 import json
@@ -25,20 +24,20 @@ URL_TOKEN = 'https://api.invertironline.com/token'
 GRANT_TYPE = 'password'
 URL_API = 'https://api.invertironline.com/api/v2/'
 
-def get_token(user, psw):
+def get_token(user_IOL, psw_IOL):
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-    body = {'username':  user,'password':  psw,'grant_type': GRANT_TYPE,}
+    body = {'username':  'jsolchaga86','password':  'Seis33453','grant_type': GRANT_TYPE,}
     res = requests.post(URL_TOKEN, headers= {'Content-Type': 'application/x-www-form-urlencoded'}
     , data=body)
     tk= "Bearer "+res.json()['access_token']
     return tk
 
-def check_token(user, psw):
+def check_token(user_IOL, psw_IOL):
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
     body = {
-        'username':  user,
-        'password':  psw,
+        'username':  'jsoslchaga86',
+        'password':  'Seis33453',
         'grant_type': GRANT_TYPE,
     }
     res = requests.post(URL_TOKEN, headers= {'Content-Type': 'application/x-www-form-urlencoded',}
@@ -86,7 +85,7 @@ def get_hist_data_IOL(mercado, simbolo, desde, hasta,pais, path):
         f'{URL_API}/{mercado}/Titulos/{simbolo}/Cotizacion/seriehistorica/{desde}/{hasta}/sinajustar', headers= {'Content-Type': 'application/x-www-form-urlencoded', 'authorization': auth}
     )
     res= response.json()
-    asset= "stoks"
+    asset= "stocks"
     df = pd.DataFrame(res)
     df= df.iloc[:,:12]
     df.columns= ["close", "var", "open", "max", "min", "dateTime","trend","opA" ,"pClose", "tradeQ", "volume", "meanp"]
@@ -111,11 +110,12 @@ def get_DB_IOL(instrumento, mercado,panel, pais,   desde,  path):
             try:
                 print(i)
                 df= get_hist_data_IOL(mercado= mercado,simbolo= i, desde=desde, hasta= date.today(),  pais= pais, path=path)
+                df.to_csv(path+i+".csv")
+
             except Exception as e:
                 print('error:', e)
             except:
                 pass
-        df.to_csv(path+simbolo+".csv")
 
     
 # Genera una lista de cryptomonedas diosponibles en Binance
@@ -251,93 +251,127 @@ def get_assets(type_,name_, cod, pathDB):
         
 # Función para actualizar la BD
 
-def act_db_csv(LastDateFilepath,path_crypto= False,path_stocks= False, path_indexes= False, path_commodities= False, path_currencies= False, path_macro = False):
-    n=0
-    while True:
-        hasta= date.today()
-        print(n)
-        df=pd.read_csv(LastDateFilepath+"LastDate.csv")
-        df_crypto= df['asset']== 'cryptocurrency'
-        df_crypto= df[df_crypto]
-        df_stocks= df['asset']== 'stocks'
-        df_stocks= df[df_stocks]
-        df_asset= df['asset']== 'commodities'
-        df_asset= df[df_asset]
-        df_asset= df['asset']== 'index'
-        df_asset= df[df_asset]
-        df_asset= df['asset']== 'macro'
-        df_asset= df[df_asset]
-        df_asset= df['asset']== 'currency'
-        df_asset= df[df_asset]
-        if df['asset']== 'cryptocurrency' and path_crypto==True:
-            for index,i in df_crypto.iterrows():
-                name=i['name']
-                print(name)
-                date=i['lastdate']
-                print(date)
-                df1=pd.read_csv(path_crypto+name+".csv")
-                curr=GetHistoricalData_crypto(date, name)
+def act_db_csv(LastDateFilepath,path_crypto,path_stocks, path_indexes, path_commodities, path_currencies, path_macro):
+    df=pd.read_csv(LastDateFilepath+"LastDate.csv")
+    for index,i in df.iterrows():
+        name=i['name']
+        print(name)
+        date=i['lastdate']
+        print(date)
+        if i['asset']== 'cryptocurrency':
+            df1=pd.read_csv(path_crypto+name+".csv")
+            curr=GetHistoricalData_crypto(date, name)
+            df1=df1.set_index('dateTime')
+            df2=pd.concat([df1, curr], axis=0)
+            print("saving")
+            df2.to_csv(path_crypto+name+".csv")
+            print(name+"ok")
+        elif i['asset']== 'commodities':
+            try:
+                df1=pd.read_csv(path_commodities+name+".csv")
+                curr= get_assets("commodities", name,1,path_commodities)
+                mask = (curr['dateTime'] > date)
+                curr=curr.loc[mask]
                 df1=df1.set_index('dateTime')
                 df2=pd.concat([df1, curr], axis=0)
                 print("saving")
-                df2.to_csv(path_crypto+name+".csv")
+                df2.to_csv(path_commodities+name+".csv")
                 print(name+"ok")
-        elif df['asset']== 'stocks' and path_stocks==True:
-            for index,i in df_stocks.iterrows():
-                name=i['name']
-                print(name)
-                date=i['lastdate']
-                print(date)
+            except:
+                df1=pd.read_csv(path_commodities+name+".csv")
+                curr= get_assets("commodities", name,0,path_commodities)
+                mask = (curr['dateTime'] > date)
+                curr=curr.loc[mask]
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_commodities+name+".csv")
+                print(name+"ok")
+        elif i['asset']== 'indices':
+            try:
+                df1=pd.read_csv(path_indexes+name+".csv")
+                curr= get_assets("commodities", name,1,path_indexes)
+                mask = (curr['dateTime'] > date)
+                curr=curr.loc[mask]
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_indexes+name+".csv")
+                print(name+"ok")
+            except:
+                df1=pd.read_csv(path_indexes+name+".csv")
+                curr= get_assets("commodities", name,0,path_indexes)
+                mask = (curr['dateTime'] > date)
+                curr=curr.loc[mask]
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_indexes+name+".csv")
+                print(name+"ok")
+        elif i['asset']== 'currencies':
+            try:
+                df1=pd.read_csv(path_currencies+name+".csv")
+                curr= get_assets("commodities", name,1,path_currencies)
+                mask = (curr['dateTime'] > date)
+                curr=curr.loc[mask]
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_currencies+name+".csv")
+                print(name+"ok")
+            except:
+                df1=pd.read_csv(path_currencies+name+".csv")
+                curr= get_assets("commodities", name,0,path_currencies)
+                mask = (curr['dateTime'] > date)
+                curr=curr.loc[mask]
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_currencies+name+".csv")
+                print(name+"ok")
+        elif i['asset']== 'macro':
+            try:
+                df1=pd.read_csv(path_macro+name+".csv")
+                curr= get_assets("commodities", name,1,path_macro)
+                mask = (curr['dateTime'] > date)
+                curr=curr.loc[mask]
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_macro+name+".csv")
+                print(name+"ok")
+            except:
+                df1=pd.read_csv(path_macro+name+".csv")
+                curr= get_assets("commodities", name,0,path_macro)
+                mask = (curr['dateTime'] > date)
+                curr=curr.loc[mask]
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_macro+name+".csv")
+                print(name+"ok")
+        elif i['asset']== 'stocks':
+            try:
                 df1=pd.read_csv(path_stocks+name+".csv")
-                try:
-                    curr= get_hist_data_IOL("bcBA", name, date, hasta,"argentina", path_stocks)
-                    df3=pd.concat([df1, curr], axis=0)
-                    print("saving")
-                    df3.to_csv(path_stocks+name+".csv")
-                    print(name+"ok")
-                except:
-                    curr= get_hist_data_IOL("bcBA", name, date, hasta,"estados_unidos", path_stocks)
-                    df4=pd.concat([df1, curr], axis=0)
-                    print("saving")
-                    df4.to_csv(path_stocks+name+".csv")
-                    print(name+"ok")
-        else:
-                for index,i in df_crypto.iterrows():
-                    name=i['name']
-                    print(name)
-                    date=i['lastdate']
-                    print(date)
-                    df1=pd.read_csv(path_crypto+name+".csv")
-                    curr=get_assets(date, name)
-                    mask = (curr['dateTime'] > date)
-                    curr=curr.loc[mask]
-                    df1=df1.set_index('dateTime')
-                    df5=pd.concat([df1, curr], axis=0)
-                    print("saving")
-                    if df['asset']== 'index':
-                        df5.to_csv(path_indexes+name+".csv")
-                        print(name+"ok")
-                    if df['asset']== 'commodities':
-                        df5.to_csv(path_commodities+name+".csv")
-                        print(name+"ok")
-                    if df['asset']== 'currency':
-                        df5.to_csv(path_currencies+name+".csv")
-                        print(name+"ok")
-                    if df['asset']== 'macro':
-                        df5.to_csv(path_macro+name+".csv")
-                        print(name+"ok")
-        n=(n+1)
-        if n%10== 0:
-            df2.to_csv(path_crypto+name+".csv")
-            df3.to_csv(path_stocks+name+".csv")
-            df4.to_csv(path_stocks+name+".csv")
-            df5.to_csv(path_indexes+name+".csv")
-
-
-
-
-    
-def get_db(path, since):
+                curr=get_hist_data_IOL('bcBA', name, date, date.today(),'argentina', path_stocks)
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_stocks+name+".csv")
+                print(name+"ok")
+            except:
+                df1=pd.read_csv(path_stocks+name+".csv")
+                curr=get_hist_data_IOL('bcBA', name, date, date.today(),'estados_unidos', path_stocks)
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_stocks+name+".csv")
+                print(name+"ok")
+        df.at[index, 'lastdate']= datetime.today()
+        df.to_csv(LastDateFilepath+'LastDate.csv')
+        print(str(i)+' actualizado')
+            
+def get_db_crypto(path, since):
     try:
         li=[]
         dates=[]
@@ -346,9 +380,9 @@ def get_db(path, since):
         for i in list:
             if not ((str(i)+".csv")) in os.listdir(path):
                 print(i)
-                coin=GetHistoricalData_crypto(since, str(i))
+                cur=GetHistoricalData_crypto(since, str(i))
                 print("saving")
-                coin.to_csv(path+str(i)+".csv")
+                cur.to_csv(path+str(i)+".csv")
                 print("ok")
                 li.append(i)
     
@@ -360,7 +394,6 @@ def get_db(path, since):
             updated= True
     except:
         pass
-    return(li, updated)
 
 
 #########################################################################################################################
@@ -394,7 +427,7 @@ psw_IOL="*****"
 if __name__ == '__main__':
 
     if create_DB== True: 
-        get_db(path_crypto, "2018-01-01 00:00:00")# Genero la BD desde 2018 con timeframe de 5´
+        get_db_crypto(path_crypto, "2018-01-01 00:00:00")# Genero la BD desde 2018 con timeframe de 5´
         get_DB_IOL("acciones", "bcBA", "panel general", "argentina", "2010-01-01",path_stocks)
         get_DB_IOL("acciones", "nySE", "sp500", "estados_unidos", "2010-01-01",path_stocks)
         Witi_oil= get_assets("commodities", "crude-oil",1,path_commodities)
@@ -417,7 +450,461 @@ if __name__ == '__main__':
 
     else:
         act_db_csv(LastDateFilepath,path_crypto,path_stocks, path_indexes, path_commodities, path_currencies, path_macro, 10)
-    get_lastdate((path_crypto,path_stocks,path_commodities, path_indexes, path_currencies, path_macro), "D:/")
+
+
+
+from pandas.io.parsers import read_csv
+import requests
+import json
+import pandas as pd
+import os
+from listas import *
+from datetime import date
+import pandas as pd
+import urllib.request
+from bs4 import BeautifulSoup
+import re
+import numpy as np
+from datetime import *
+from binance.client import Client
+client = Client()
+
+############################################################################################################################
+############################## FUNCTIONS ##################################################################################
+###########################################################################################################################
+
+# Genera el token para los request de la API
+
+URL_TOKEN = 'https://api.invertironline.com/token'
+GRANT_TYPE = 'password'
+URL_API = 'https://api.invertironline.com/api/v2/'
+
+def get_token(user_IOL, psw_IOL):
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+    body = {'username':  'jsolchaga86','password':  'Seis33453','grant_type': GRANT_TYPE,}
+    res = requests.post(URL_TOKEN, headers= {'Content-Type': 'application/x-www-form-urlencoded'}
+    , data=body)
+    tk= "Bearer "+res.json()['access_token']
+    return tk
+
+def check_token(user_IOL, psw_IOL):
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+
+    body = {
+        'username':  'jsoslchaga86',
+        'password':  'Seis33453',
+        'grant_type': GRANT_TYPE,
+    }
+    res = requests.post(URL_TOKEN, headers= {'Content-Type': 'application/x-www-form-urlencoded',}
+    , data=body)
+    tk= "Barer "+res.json()['access_token']
+    return tk
+
+# Genera una lista con los simbolos de las acciones pertenecientes a un panel
+
+def get_tickers_panel( instrumento, panel, pais):
+
+    auth= get_token(user_IOL, psw_IOL)
+
+    simbolos=[]
+    response = requests.get(f'{URL_API}/Cotizaciones/{instrumento}/{panel}/{pais}', headers= {'Content-Type': 'application/x-www-form-urlencoded', 'authorization': auth,}
+    )
+    dict= json.loads(response.text)
+    for i in dict["titulos"]:
+        simbolos.append(i["simbolo"])
+    return simbolos
+
+# Genera una tabla con los simbolod de un mercado particular
+
+def get_asset_IOL(  mercado, simbolo):
+    response = requests.get(
+        f'{URL_API}/{mercado}/Titulos/{simbolo}', headers= {'Content-Type': 'application/x-www-form-urlencoded'}
+    )
+    return json.loads(response.text)
+
+def get_panel( instrumento, panel, pais):
+    auth= check_token(user_IOL, psw_IOL)
+
+    response = requests.get(
+        f'{URL_API}/Cotizaciones/{instrumento}/{panel}/{pais}', headers= {'Content-Type': 'application/x-www-form-urlencoded', 'authorization': auth}
+    )
+    res= json.loads(response.text)
+    pd.DataFrame(res)
+
+# Genera una tabla con los datos historicos de una acción:
+
+def get_hist_data_IOL(mercado, simbolo, desde, hasta,pais, path):
+    auth= get_token(user_IOL, psw_IOL)
+    asset= "stock"
+    response = requests.get(
+        f'{URL_API}/{mercado}/Titulos/{simbolo}/Cotizacion/seriehistorica/{desde}/{hasta}/sinajustar', headers= {'Content-Type': 'application/x-www-form-urlencoded', 'authorization': auth}
+    )
+    res= response.json()
+    asset= "stocks"
+    df = pd.DataFrame(res)
+    df= df.iloc[:,:12]
+    df.columns= ["close", "var", "open", "max", "min", "dateTime","trend","opA" ,"pClose", "tradeQ", "volume", "meanp"]
+    df= df.drop(columns=['trend', 'tradeQ','opA', 'pClose', 'meanp'], axis=1)
+    df['dateTime']=df['dateTime'].str.slice(0, 10)
+    df["dateTime"] = pd.to_datetime(df.dateTime)
+    df=df[["close", "var", "open", "max", "min", "dateTime", "volume"]]
+    df['ticker']= (simbolo)
+    df["country"]= (pais)
+    df["asset"]= asset
+    df.set_index('dateTime', inplace=True)
+ 
+    return df
+
+# Genera una base de datos con las acciones de Argentina o EEUU
+
+def get_DB_IOL(instrumento, mercado,panel, pais,   desde,  path):
+    activos=[]
+    simbolos=  get_tickers_panel(instrumento="acciones", pais=pais, panel=panel)
+    for i in simbolos:
+        if not str(i+".csv") in os.listdir(path):
+            try:
+                print(i)
+                df= get_hist_data_IOL(mercado= mercado,simbolo= i, desde=desde, hasta= date.today(),  pais= pais, path=path)
+                df.to_csv(path+i+".csv")
+
+            except Exception as e:
+                print('error:', e)
+            except:
+                pass
+
+    
+# Genera una lista de cryptomonedas diosponibles en Binance
+
+def get_crypto_tickers():
+    holc= pd.DataFrame(client.get_ticker())
+    Orderbook = pd.DataFrame(client.get_orderbook_tickers())
+    merged_inner = pd.merge(left=holc, right=Orderbook, left_on='symbol', right_on='symbol')
+    return merged_inner
+
+# Genera una tabla con datos historicos de una cryptomoneda, cada 5min
+
+def GetHistoricalData_crypto(sinceThisDate, par):
+    untilThisDate = datetime.now()
+    candle = client.get_historical_klines(par, Client.KLINE_INTERVAL_5MINUTE, sinceThisDate, str(untilThisDate))
+    df = pd.DataFrame(candle, columns=['dateTime', 'open', 'max', 'min', 'close', 'volume', 'closeTime', 'quoteAssetVolume', 'numberOfTrades', 'takerBuyBaseVol', 'takerBuyQuoteVol', 'ignore'])
+    df['token']=(par)
+    df['asset']= "cryptocurrency"
+    df.dateTime = pd.to_datetime(df.dateTime, unit='ms')
+    df.set_index('dateTime', inplace=True)
+    return(df)
+
+# Genera un csv con la ultima fecha de actualizacion de la base de datos
+
+def get_lastdate(DirList):
+    dates=[]
+    for n in DirList:
+        for i in os.listdir(n):
+            try:
+                df=(pd.read_csv(n+i)).iloc[-1,0]
+                df=[str(i[0:-4]),str(df), str(df['asset'])]
+                dates.append(df)
+            except:
+                pass
+    dates=pd.DataFrame(dates, columns=["name", "lastdate"])
+    dates.to_csv(SaveDir+"LastDate.csv")
+      
+# Scraper de Wikipedia que devuelve una lista con los simbolos de los activos del mercado solicitado
+
+def get_stocks_wiki(Market):
+    if (Market== "s&p"):
+        Stocks_tab=pd.read_html("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies", skiprows=1, header=0)[0]
+        Stocks_tab=pd.DataFrame(Stocks_tab)
+        Stocks_tab.columns=["Sym","Name","Reports", "Sector", "Sub_sector","State", "date added", "CIK", "Founded"]
+    elif (Market== "dow jones"):
+        Stocks_tab=pd.read_html("https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average", skiprows=1, header=0)[1]
+        Stocks_tab=pd.DataFrame(Stocks_tab)
+        Stocks_tab.columns=["Name","exchange","Sym", "Sector", "Date added","Notes", "%index"]
+    else:
+        Stocks_tab=pd.read_html("https://en.wikipedia.org/wiki/Nasdaq-100", skiprows=1, header=0)[3]
+        Stocks_tab=pd.DataFrame(Stocks_tab)
+        Stocks_tab.columns=["Name","Sym", "Sector", "SubSector"]
+
+    Syms=[]
+    Sym_esp=Stocks_tab["Sym"]
+    for i in Sym_esp.items():
+        text=(i[1])
+        Syms.append(text)
+    
+    Name=[]
+    Name_esp=Stocks_tab["Name"]
+    for i in Name_esp.items():
+        text=(i[1])
+        text=text.replace(" ","-")
+        Name.append(text)
+
+    Sector=[] 
+    Sectors=Stocks_tab["Sector"]
+    for i in Sectors.items():
+        text=(i[1])
+        Sector.append(text)
+        
+    return Syms, Name, Sector
+
+# Devuelve una tabla con el simbolo de las acciones de EEUU, su nombre y sector
+
+def get_total_stocks():
+    samp= get_stocks_wiki("s&p")
+    d_jones= get_stocks_wiki("dow jones")
+    nasdaq= get_stocks_wiki("nasdaq")
+    Syms=samp[0]+nasdaq[0]+d_jones[0]
+    Names=samp[1]+nasdaq[1]+d_jones[1]
+    Sector=samp[2]+nasdaq[2]+d_jones[2]
+    return pd.DataFrame(zip(Syms, Names, Sector), columns=["Syms", "Name", "Sector"])
+
+# Scrapper de investi ng que devuelve una tabla con los ultimos datos de los activos pedidos
+
+def get_assets(type_,name_, cod, pathDB):
+    print(name_)
+    if type_=="currencies" or type_=="rates-bonds":
+        columns=["Date", "Price", "Open","High", "Low", "Var"]
+    else:
+        columns=["Date", "Close", "Open","Max", "Min", "Vol", "Var"]
+    if type_=="equities":
+        namepath=(lis.loc[lis["Syms"]==name_, "Name"]).unique()[1]
+        namepath=name_.lower()
+    else:
+        namepath=name_
+    path= "https://es.investing.com/"+type_+"/"+ name_+"-historical-data"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    req = urllib.request.Request(path, headers=headers)
+    with urllib.request.urlopen(req) as response:
+        raw = response.read()
+    soup = BeautifulSoup(raw, "lxml")
+    table=[]
+    df=[]
+    row_=soup.find_all({"tbody":"tr"})[cod]
+    row_=row_.contents
+    for i in row_:
+        row=[]
+        for n in i:
+            value=str(re.findall('>.*<',str(n)))
+            value=value.replace("<",'')
+            value=value.replace(">",'')
+            value=value.replace("K","000")
+            value=value.replace(",",".")
+            value=value.replace('[', '')
+            value=value.replace(']', '')
+            value=value.replace("'","")
+            if value!='[]' and value!="":
+                try:
+                    row.append(float(value))
+                except:
+                    row.append(value)
+        if len(row)>0:
+            table.append(row)
+    for j in table:
+        if j !=[""]:
+            df.append(j)
+    df= pd.DataFrame(df, columns=columns)
+    df['asset']=str(type_)
+    df.to_csv(pathDB+(name_)+".csv")
+        
+# Función para actualizar la BD
+
+def act_db_csv(LastDateFilepath,path_crypto,path_stocks, path_indexes, path_commodities, path_currencies, path_macro):
+    df=pd.read_csv(LastDateFilepath+"LastDate.csv")
+    for index,i in df.iterrows():
+        name=i['name']
+        print(name)
+        date=i['lastdate']
+        print(date)
+        if i['asset']== 'cryptocurrency':
+            df1=pd.read_csv(path_crypto+name+".csv")
+            curr=GetHistoricalData_crypto(date, name)
+            df1=df1.set_index('dateTime')
+            df2=pd.concat([df1, curr], axis=0)
+            print("saving")
+            df2.to_csv(path_crypto+name+".csv")
+            print(name+"ok")
+        elif i['asset']== 'commodities':
+            try:
+                df1=pd.read_csv(path_commodities+name+".csv")
+                curr= get_assets("commodities", name,1,path_commodities)
+                mask = (curr['dateTime'] > date)
+                curr=curr.loc[mask]
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_commodities+name+".csv")
+                print(name+"ok")
+            except:
+                df1=pd.read_csv(path_commodities+name+".csv")
+                curr= get_assets("commodities", name,0,path_commodities)
+                mask = (curr['dateTime'] > date)
+                curr=curr.loc[mask]
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_commodities+name+".csv")
+                print(name+"ok")
+        elif i['asset']== 'indices':
+            try:
+                df1=pd.read_csv(path_indexes+name+".csv")
+                curr= get_assets("commodities", name,1,path_indexes)
+                mask = (curr['dateTime'] > date)
+                curr=curr.loc[mask]
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_indexes+name+".csv")
+                print(name+"ok")
+            except:
+                df1=pd.read_csv(path_indexes+name+".csv")
+                curr= get_assets("commodities", name,0,path_indexes)
+                mask = (curr['dateTime'] > date)
+                curr=curr.loc[mask]
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_indexes+name+".csv")
+                print(name+"ok")
+        elif i['asset']== 'currencies':
+            try:
+                df1=pd.read_csv(path_currencies+name+".csv")
+                curr= get_assets("commodities", name,1,path_currencies)
+                mask = (curr['dateTime'] > date)
+                curr=curr.loc[mask]
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_currencies+name+".csv")
+                print(name+"ok")
+            except:
+                df1=pd.read_csv(path_currencies+name+".csv")
+                curr= get_assets("commodities", name,0,path_currencies)
+                mask = (curr['dateTime'] > date)
+                curr=curr.loc[mask]
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_currencies+name+".csv")
+                print(name+"ok")
+        elif i['asset']== 'macro':
+            try:
+                df1=pd.read_csv(path_macro+name+".csv")
+                curr= get_assets("commodities", name,1,path_macro)
+                mask = (curr['dateTime'] > date)
+                curr=curr.loc[mask]
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_macro+name+".csv")
+                print(name+"ok")
+            except:
+                df1=pd.read_csv(path_macro+name+".csv")
+                curr= get_assets("commodities", name,0,path_macro)
+                mask = (curr['dateTime'] > date)
+                curr=curr.loc[mask]
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_macro+name+".csv")
+                print(name+"ok")
+        elif i['asset']== 'stocks':
+            try:
+                df1=pd.read_csv(path_stocks+name+".csv")
+                curr=get_hist_data_IOL('bcBA', name, date, date.today(),'argentina', path_stocks)
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_stocks+name+".csv")
+                print(name+"ok")
+            except:
+                df1=pd.read_csv(path_stocks+name+".csv")
+                curr=get_hist_data_IOL('bcBA', name, date, date.today(),'estados_unidos', path_stocks)
+                df1=df1.set_index('dateTime')
+                df2=pd.concat([df1, curr], axis=0)
+                print("saving")
+                df2.to_csv(path_stocks+name+".csv")
+                print(name+"ok")
+        df.at[index, 'lastdate']= datetime.today()
+        df.to_csv(LastDateFilepath+'LastDate.csv')
+        print(str(i)+' actualizado')
+            
+def get_db_crypto(path, since):
+    try:
+        li=[]
+        dates=[]
+        df=get_crypto_tickers()
+        list=df['symbol']
+        for i in list:
+            if not ((str(i)+".csv")) in os.listdir(path):
+                print(i)
+                cur=GetHistoricalData_crypto(since, str(i))
+                print("saving")
+                cur.to_csv(path+str(i)+".csv")
+                print("ok")
+                li.append(i)
+    
+        if len(li)==0:
+            updated= False
+            print("DB ok")
+            return updated
+        else:
+            updated= True
+    except:
+        pass
+
+
+#########################################################################################################################
+################################# PARAMETROS ############################################################################
+#########################################################################################################################
+
+# Elijo si crear una base de datos (True) o actualizar las existentes (False)
+
+create_DB= True
+
+# Elijo el formato (csv, sql o ambas)
+
+save_sql= True
+save_csv= True 
+
+# Elijo los destinos para los distintos archivos en caso de guardar como csv
+
+LastDateFilepath= "D:/"
+path_stocks= "D:/acciones/"
+path_crypto="D:/crypto/"
+path_commodities= "D:/commodities/"
+path_indexes= "D:/indices/"
+path_currencies= "D:/divisas/"
+path_macro= "D:/macro/"
+
+# Password y usuarios para API de IOL
+
+user_IOL= "********"
+psw_IOL="*****"
+
+if __name__ == '__main__':
+
+    if create_DB== True: 
+        get_db_crypto(path_crypto, "2018-01-01 00:00:00")# Genero la BD desde 2018 con timeframe de 5´
+        get_DB_IOL("acciones", "bcBA", "panel general", "argentina", "2010-01-01",path_stocks)
+        get_DB_IOL("acciones", "nySE", "sp500", "estados_unidos", "2010-01-01",path_stocks)
+        Witi_oil= get_assets("commodities", "crude-oil",1,path_commodities)
+        Soybeans= get_assets("commodities", "us-soybeans",1,path_commodities)
+        Corn= get_assets("commodities", "us-corn",1,path_commodities)
+        Wheat= get_assets("commodities","london-wheat",0,path_commodities)
+        Copper= get_assets("commodities","copper",1,path_commodities)
+        Samp= get_assets("indices","us-spx-500",1,path_indexes)
+        Dow_joes= get_assets("indices","us-30",1,path_indexes)
+        Nasdaq= get_assets("indices","nasdaq-composite",0,path_indexes)
+        Bovespa= get_assets("indices","bovespa",0,path_indexes)
+        Shangai= get_assets("indices","shanghai-composite",1,path_indexes)
+        Ibex= get_assets("indices","spain-35",1,path_indexes)
+        uk_100= get_assets("indices","uk-100",1,path_indexes)
+        merval= get_assets("indices","merv",0,path_indexes)
+        USD_ARS= get_assets("currencies","usd-ars",0,path_currencies)
+        USD_BRL= get_assets("currencies","usd-brl",1,path_currencies)
+        USD_10Y= get_assets("macro","u.s.-10-year-bond-yield",0,path_macro)
+        get_lastdate((path_crypto,path_stocks,path_commodities, path_indexes, path_currencies, path_macro), "D:/")
+
+    else:
+        act_db_csv(LastDateFilepath,path_crypto,path_stocks, path_indexes, path_commodities, path_currencies, path_macro, 10)
 
 
 
