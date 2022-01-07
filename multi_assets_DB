@@ -1,7 +1,11 @@
+
 from pandas.io.parsers import read_csv
 import requests
 import json
+import pandas as pd
 import os
+from listas import *
+from datetime import date
 import pandas as pd
 import urllib.request
 from bs4 import BeautifulSoup
@@ -137,7 +141,7 @@ def GetHistoricalData_crypto(sinceThisDate, par):
 
 # Genera un csv con la ultima fecha de actualizacion de la base de datos
 
-def get_lastdate(DirList):
+def get_lastdate(DirList, SaveDir):
     dates=[]
     for n in DirList:
         for i in os.listdir(n):
@@ -436,17 +440,15 @@ if __name__ == '__main__':
         Dow_joes= get_assets("indices","us-30",1,path_indexes)
         Nasdaq= get_assets("indices","nasdaq-composite",0,path_indexes)
         Bovespa= get_assets("indices","bovespa",0,path_indexes)
-        Shangai= get_assets("indices","shanghai-composite",1,path_indexes)
+        Shangai= get_assets("indices","shanghai-composite",0,path_indexes)
         Ibex= get_assets("indices","spain-35",1,path_indexes)
         uk_100= get_assets("indices","uk-100",1,path_indexes)
         merval= get_assets("indices","merv",0,path_indexes)
         USD_ARS= get_assets("currencies","usd-ars",0,path_currencies)
         USD_BRL= get_assets("currencies","usd-brl",1,path_currencies)
-        USD_10Y= get_assets("macro","u.s.-10-year-bond-yield",0,path_macro)
+        USD_10Y= get_assets("rates-bonds","u.s.-10-year-bond-yield",0,path_macro)
         get_lastdate((path_crypto,path_stocks,path_commodities, path_indexes, path_currencies, path_macro), "D:/")
 
     else:
         act_db_csv(LastDateFilepath,path_crypto,path_stocks, path_indexes, path_commodities, path_currencies, path_macro, 10)
-
-
 
