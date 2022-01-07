@@ -372,9 +372,9 @@ def act_db_csv(LastDateFilepath,path_crypto,path_stocks, path_indexes, path_comm
                 print("saving")
                 df2.to_csv(path_stocks+name+".csv")
                 print(name+"ok")
-        df.at[index, 'lastdate']= datetime.today()
-        df.to_csv(LastDateFilepath+'LastDate.csv')
-        print(str(i)+' actualizado')
+    df.at[index, 'lastdate']= datetime.today()
+    df.to_csv(LastDateFilepath+'LastDate.csv')
+    print(str(i)+' actualizado')
             
 def get_db_crypto(path, since):
     try:
@@ -407,7 +407,7 @@ def get_db_crypto(path, since):
 
 # Elijo si crear una base de datos (True) o actualizar las existentes (False)
 
-create_DB= False
+create_DB= True
 
 # Elijo el formato (csv, sql o ambas)
 
@@ -430,11 +430,29 @@ user_IOL= "********"
 psw_IOL="*****"
 
 if __name__ == '__main__':
-
     if create_DB== True: 
-
-        get_lastdate((path_crypto,path_stocks,path_commodities, path_indexes, path_currencies, path_macro), "D:/")
+            get_db_crypto(path_crypto, "2018-01-01 00:00:00")# Genero la BD desde 2018 con timeframe de 5´
+            get_DB_IOL("acciones", "bcBA", "panel general", "argentina", "2010-01-01",path_stocks)
+            get_DB_IOL("acciones", "nySE", "sp500", "estados_unidos", "2010-01-01",path_stocks)
+            Witi_oil= get_assets("commodities", "crude-oil",1,path_commodities)
+            Soybeans= get_assets("commodities", "us-soybeans",1,path_commodities)
+            Corn= get_assets("commodities", "us-corn",1,path_commodities)
+            Wheat= get_assets("commodities","london-wheat",0,path_commodities)
+            Copper= get_assets("commodities","copper",1,path_commodities)
+            Samp= get_assets("indices","us-spx-500",1,path_indexes)
+            Dow_joes= get_assets("indices","us-30",1,path_indexes)
+            Nasdaq= get_assets("indices","nasdaq-composite",0,path_indexes)
+            Bovespa= get_assets("indices","bovespa",0,path_indexes)
+            Shangai= get_assets("indices","shanghai-composite",0,path_indexes)
+            Ibex= get_assets("indices","spain-35",1,path_indexes)
+            uk_100= get_assets("indices","uk-100",1,path_indexes)
+            merval= get_assets("indices","merv",0,path_indexes)
+            USD_ARS= get_assets("currencies","usd-ars",0,path_currencies)
+            USD_BRL= get_assets("currencies","usd-brl",1,path_currencies)
+            USD_10Y= get_assets("rates-bonds","u.s.-10-year-bond-yield",0,path_macro)
+            get_lastdate((path_crypto,path_stocks,path_commodities, path_indexes, path_currencies, path_macro), "D:/")
 
     else:
-        act_db_csv(LastDateFilepath,path_crypto,path_stocks, path_indexes, path_commodities, path_currencies, path_macro)
+            act_db_csv(LastDateFilepath,path_crypto,path_stocks, path_indexes, path_commodities, path_currencies, path_macro, 10)
+
 
