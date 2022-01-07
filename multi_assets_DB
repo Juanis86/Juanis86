@@ -1,10 +1,7 @@
 from pandas.io.parsers import read_csv
 import requests
 import json
-import pandas as pd
 import os
-from listas import *
-from datetime import date
 import pandas as pd
 import urllib.request
 from bs4 import BeautifulSoup
