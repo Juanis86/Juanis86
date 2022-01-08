@@ -452,7 +452,5 @@ if __name__ == '__main__':
             USD_10Y= get_assets("rates-bonds","u.s.-10-year-bond-yield",0,path_macro)
             get_lastdate((path_crypto,path_stocks,path_commodities, path_indexes, path_currencies, path_macro), "D:/")
 
-    else:
-            act_db_csv(LastDateFilepath,path_crypto,path_stocks, path_indexes, path_commodities, path_currencies, path_macro, 10)
 
 
